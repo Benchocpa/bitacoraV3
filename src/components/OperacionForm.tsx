@@ -83,6 +83,8 @@ export function OperacionForm({
     });
   };
 
+  const esCC = form.estrategia.toUpperCase() === "CC";
+
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -155,7 +157,9 @@ export function OperacionForm({
           />
         </div>
         <div className="space-y-1">
-          <Label htmlFor="precio_apertura">Precio apertura (spot)</Label>
+          <Label htmlFor="precio_apertura">
+            Precio compra acciones (CC) / spot
+          </Label>
           <Input
             id="precio_apertura"
             name="precio_apertura"
@@ -163,7 +167,8 @@ export function OperacionForm({
             step="0.01"
             value={form.precio_apertura ?? ""}
             onChange={handleChange}
-            placeholder="Opcional"
+            placeholder="Opcional / obligatorio si es CC"
+            required={esCC}
           />
         </div>
         <div className="space-y-1">

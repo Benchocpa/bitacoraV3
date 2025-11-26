@@ -44,11 +44,14 @@ const breakEvenPorTicker = (op: OperacionCalculada) => {
   const base = op.contratos * 100 || 1;
   const primaNetaPorAccion =
     (op.prima_recibida - op.comision - op.costo_cierre) / base;
-  // Supuesto: CSP resta prima al strike, CC suma prima al strike.
-  if (op.estrategia.toUpperCase() === "CSP") {
+  const estrategia = op.estrategia.toUpperCase();
+  if (estrategia === "CSP") {
     return op.strike - primaNetaPorAccion;
   }
-  return op.strike + primaNetaPorAccion;
+  // CC: costo base real menos la prima neta.
+  const precioBase =
+    op.precio_apertura ?? op.precio_actual ?? op.strike ?? 0;
+  return precioBase - primaNetaPorAccion;
 };
 
 const formatMovimiento = (mov: string) => {

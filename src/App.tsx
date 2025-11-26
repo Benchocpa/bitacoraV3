@@ -71,9 +71,14 @@ function App() {
     const base = op.contratos * 100 || 1;
     const primaNetaPorAccion =
       (op.prima_recibida - op.comision - op.costo_cierre) / base;
-    return op.estrategia.toUpperCase() === "CSP"
-      ? op.strike - primaNetaPorAccion
-      : op.strike + primaNetaPorAccion;
+    const estrategia = op.estrategia.toUpperCase();
+    if (estrategia === "CSP") {
+      return op.strike - primaNetaPorAccion;
+    }
+    // CC: costo base real de la acción menos la prima neta.
+    const precioBase =
+      op.precio_apertura ?? op.precio_actual ?? op.strike ?? 0;
+    return precioBase - primaNetaPorAccion;
   };
 
   const cadenaSeleccionada = useMemo(() => {
