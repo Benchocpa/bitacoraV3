@@ -17,19 +17,23 @@ const toNumber = (value: unknown) => {
 };
 
 const calcularPlAsignacion = (op: Operacion): number => {
-  if (op.estado !== "Asignada" || op.precio_actual === null) return 0;
+  const precioActual =
+    op.precio_actual === null || op.precio_actual === undefined
+      ? null
+      : op.precio_actual;
+  if (op.estado !== "Asignada" || precioActual === null) return 0;
   const base = op.contratos * 100;
   const estrategia = op.estrategia.toUpperCase();
   // CSP: se compra a strike; pérdida si precio_actual < strike.
   if (estrategia === "CSP") {
-    return (op.precio_actual - op.strike) * base;
+    return (precioActual - op.strike) * base;
   }
   // CC: se vende a strike; pérdida si precio_actual > strike.
   if (estrategia === "CC") {
-    return (op.strike - op.precio_actual) * base;
+    return (op.strike - precioActual) * base;
   }
   // Por defecto, usar diferencia inversa a mercado (más seguro asumir pérdida si precio > strike).
-  return (op.strike - op.precio_actual) * base;
+  return (op.strike - precioActual) * base;
 };
 
 const parseOperacion = (row: any): Operacion => ({
