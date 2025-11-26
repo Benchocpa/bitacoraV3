@@ -98,9 +98,9 @@ export function ModalCierre({
                   name="costo_cierre"
                   type="number"
                   step="0.01"
-                  value={form.costo_cierre}
+                  value={form.costo_cierre === 0 ? "" : form.costo_cierre}
                   onChange={handleChange}
-                  required
+                  placeholder="0 si no aplica"
                 />
               </div>
               <div className="space-y-1">
@@ -110,9 +110,9 @@ export function ModalCierre({
                   name="comision"
                   type="number"
                   step="0.01"
-                  value={form.comision}
+                  value={form.comision === 0 ? "" : form.comision}
                   onChange={handleChange}
-                  required
+                  placeholder="0 si no aplica"
                 />
               </div>
               <div className="space-y-1">

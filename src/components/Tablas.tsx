@@ -213,8 +213,16 @@ export function TablaOperaciones({
 
 export function TablaHistorial({
   historial,
+  onRevertAsignacion,
+  page,
+  totalPages,
+  onPageChange,
 }: {
   historial: OperacionCalculada[];
+  onRevertAsignacion?: (op: OperacionCalculada) => void;
+  page?: number;
+  totalPages?: number;
+  onPageChange?: (page: number) => void;
 }) {
   return (
     <div className="card">
@@ -242,12 +250,16 @@ export function TablaHistorial({
               <TableHead>NETO</TableHead>
               <TableHead>ROI %</TableHead>
               <TableHead>Estado</TableHead>
+              {onRevertAsignacion && <TableHead>Acción</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {historial.length === 0 && (
               <TableRow>
-                <TableCell colSpan={10} className="text-center text-slate-500">
+                <TableCell
+                  colSpan={onRevertAsignacion ? 15 : 14}
+                  className="text-center text-slate-500"
+                >
                   No hay movimientos registrados.
                 </TableCell>
               </TableRow>
@@ -284,11 +296,53 @@ export function TablaHistorial({
                 <TableCell>
                   <Badge variant={estadoColor(op.estado)}>{op.estado}</Badge>
                 </TableCell>
+                {onRevertAsignacion && (
+                  <TableCell>
+                    {(op.estado === "Asignada" || op.estado === "Cerrada") && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onRevertAsignacion(op)}
+                      >
+                        Revertir
+                      </Button>
+                    )}
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
+      {onPageChange && totalPages && totalPages > 1 && (
+        <div className="mt-3 flex items-center justify-between">
+          <span className="text-sm text-slate-500">
+            Página {page} de {totalPages}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPageChange(Math.max(1, (page ?? 1) - 1))}
+              disabled={!page || page <= 1}
+            >
+              Anterior
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                onPageChange(
+                  Math.min(totalPages, (page ?? 1) + 1)
+                )
+              }
+              disabled={!page || page >= totalPages}
+            >
+              Siguiente
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

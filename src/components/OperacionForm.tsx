@@ -149,7 +149,7 @@ export function OperacionForm({
             name="strike"
             type="number"
             step="0.01"
-            value={form.strike}
+            value={form.strike === 0 ? "" : form.strike}
             onChange={handleChange}
             required
           />
@@ -173,19 +173,7 @@ export function OperacionForm({
             name="prima_recibida"
             type="number"
             step="0.01"
-            value={form.prima_recibida}
-            onChange={handleChange}
-            required
-          />
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="comision">Comisión</Label>
-          <Input
-            id="comision"
-            name="comision"
-            type="number"
-            step="0.01"
-            value={form.comision}
+            value={form.prima_recibida === 0 ? "" : form.prima_recibida}
             onChange={handleChange}
             required
           />

@@ -84,11 +84,11 @@ export function ModalRoll({
         </DialogHeader>
         {operacion ? (
           <form onSubmit={handleSubmit} className="space-y-3">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <div className="space-y-1">
-                <Label>Ticker</Label>
-                <div className="text-sm font-semibold">{operacion.ticker}</div>
-              </div>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="space-y-1">
+          <Label>Ticker</Label>
+          <div className="text-sm font-semibold">{operacion.ticker}</div>
+        </div>
               <div className="space-y-1">
                 <Label>Cadena ID</Label>
                 <div className="text-xs text-slate-600">
@@ -99,33 +99,21 @@ export function ModalRoll({
                 <Label htmlFor="costoCierreActual">
                   Costo de cierre tramo actual
                 </Label>
-                <Input
-                  id="costoCierreActual"
-                  name="costoCierreActual"
-                  type="number"
-                  step="0.01"
-                  value={form.costoCierreActual}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="nuevaComision">Nueva comisión (roll)</Label>
-                <Input
-                  id="nuevaComision"
-                  name="nuevaComision"
-                  type="number"
-                  step="0.01"
-                  value={form.nuevaComision}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="nuevaFechaInicio">Nueva fecha inicio</Label>
-                <Input
-                  id="nuevaFechaInicio"
-                  name="nuevaFechaInicio"
+        <Input
+          id="costoCierreActual"
+          name="costoCierreActual"
+          type="number"
+          step="0.01"
+          value={form.costoCierreActual === 0 ? "" : form.costoCierreActual}
+          onChange={handleChange}
+          required
+        />
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="nuevaFechaInicio">Nueva fecha inicio</Label>
+        <Input
+          id="nuevaFechaInicio"
+          name="nuevaFechaInicio"
                   type="date"
                   value={form.nuevaFechaInicio}
                   onChange={handleChange}
@@ -158,16 +146,16 @@ export function ModalRoll({
               </div>
               <div className="space-y-1">
                 <Label htmlFor="nuevaPrima">Nueva prima</Label>
-                <Input
-                  id="nuevaPrima"
-                  name="nuevaPrima"
-                  type="number"
-                  step="0.01"
-                  value={form.nuevaPrima}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
+        <Input
+          id="nuevaPrima"
+          name="nuevaPrima"
+          type="number"
+          step="0.01"
+          value={form.nuevaPrima === 0 ? "" : form.nuevaPrima}
+          onChange={handleChange}
+          required
+        />
+      </div>
               <div className="space-y-1">
                 <Label htmlFor="precioActual">Precio actual (spot)</Label>
                 <Input

@@ -67,10 +67,12 @@ export interface AsignacionPayload {
   id: number;
   fecha_cierre: string;
   precio_actual: number;
+  comision: number;
   nota?: string;
 }
 
 export interface OperacionCalculada extends Operacion {
   neto: number;
   roi: number;
+  pl_asignacion: number;
 }

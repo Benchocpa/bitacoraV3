@@ -16,6 +16,22 @@ const toNumber = (value: unknown) => {
   return Number.isFinite(num) ? num : 0;
 };
 
+const calcularPlAsignacion = (op: Operacion): number => {
+  if (op.estado !== "Asignada" || op.precio_actual === null) return 0;
+  const base = op.contratos * 100;
+  const estrategia = op.estrategia.toUpperCase();
+  // CSP: se compra a strike; pérdida si precio_actual < strike.
+  if (estrategia === "CSP") {
+    return (op.precio_actual - op.strike) * base;
+  }
+  // CC: se vende a strike; pérdida si precio_actual > strike.
+  if (estrategia === "CC") {
+    return (op.strike - op.precio_actual) * base;
+  }
+  // Por defecto, usar diferencia inversa a mercado (más seguro asumir pérdida si precio > strike).
+  return (op.strike - op.precio_actual) * base;
+};
+
 const parseOperacion = (row: any): Operacion => ({
   id: Number(row.id),
   fecha_evento: row.fecha_evento,
@@ -45,10 +61,13 @@ const parseOperacion = (row: any): Operacion => ({
 });
 
 const addCalculos = (op: Operacion): OperacionCalculada => {
-  const neto = op.prima_recibida - (op.comision + op.costo_cierre);
+  const pl_asignacion = calcularPlAsignacion(op);
+  const baseNeto = op.prima_recibida - (op.comision + op.costo_cierre);
+  // Para asignadas el costo ya viene en costo_cierre; evitamos duplicar el P/L de asignación.
+  const neto = op.estado === "Asignada" ? baseNeto : baseNeto + pl_asignacion;
   const capital = op.contratos * 100 * op.strike;
   const roi = capital > 0 ? neto / capital : 0;
-  return { ...op, neto, roi };
+  return { ...op, neto, roi, pl_asignacion };
 };
 
 export async function getOperacionesActuales(): Promise<OperacionCalculada[]> {
@@ -209,7 +228,59 @@ export async function cerrarOperacion(payload: CierrePayload) {
   return data ? addCalculos(parseOperacion(data)) : null;
 }
 
+export async function importarHistorial(
+  filas: Partial<Operacion>[]
+): Promise<OperacionCalculada[]> {
+  if (!filas.length) return [];
+
+  const normalizadas = filas.map((f) => ({
+    fecha_evento: f.fecha_evento ?? new Date().toISOString(),
+    ticker: (f.ticker ?? "").toUpperCase(),
+    estrategia: f.estrategia ?? "CSP",
+    contratos: Number(f.contratos ?? 1),
+    strike: toNumber(f.strike),
+    precio_apertura: f.precio_apertura ?? null,
+    precio_actual: f.precio_actual ?? null,
+    prima_recibida: toNumber(f.prima_recibida),
+    comision: toNumber(f.comision),
+    costo_cierre: toNumber(f.costo_cierre),
+    fecha_inicio: f.fecha_inicio ?? new Date().toISOString().slice(0, 10),
+    fecha_vencimiento: f.fecha_vencimiento ?? null,
+    fecha_cierre: f.fecha_cierre ?? null,
+    estado: f.estado ?? "Abierta",
+    tipo_movimiento: f.tipo_movimiento ?? "apertura",
+    cadena_id: f.cadena_id ?? crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`,
+    es_posicion_actual: Boolean(f.es_posicion_actual ?? true),
+    nota: f.nota ?? null,
+  }));
+
+  const { data, error } = await supabase
+    .from(TABLE)
+    .insert(normalizadas)
+    .select();
+
+  if (error) throw error;
+  return (data ?? []).map((row) => addCalculos(parseOperacion(row)));
+}
 export async function asignarOperacion(payload: AsignacionPayload) {
+  const { data: current, error: currentError } = await supabase
+    .from(TABLE)
+    .select("*")
+    .eq("id", payload.id)
+    .eq("es_posicion_actual", true)
+    .single();
+
+  if (currentError) throw currentError;
+  if (!current) throw new Error("Operación no encontrada para asignar.");
+
+  const parsed = parseOperacion(current);
+  const pl_asignacion = calcularPlAsignacion({
+    ...parsed,
+    precio_actual: payload.precio_actual,
+    estado: "Asignada",
+  });
+  const costoAsignacion = pl_asignacion < 0 ? -pl_asignacion : 0;
+
   const { data, error } = await supabase
     .from(TABLE)
     .update({
@@ -218,10 +289,80 @@ export async function asignarOperacion(payload: AsignacionPayload) {
       tipo_movimiento: "asignacion",
       fecha_cierre: payload.fecha_cierre,
       precio_actual: payload.precio_actual,
+      comision: payload.comision,
+      costo_cierre: toNumber(parsed.costo_cierre) + costoAsignacion,
       nota: payload.nota ?? null,
     })
     .eq("id", payload.id)
     .eq("es_posicion_actual", true)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data ? addCalculos(parseOperacion(data)) : null;
+}
+
+export async function revertirAsignacion(id: number) {
+  const { data: current, error: currentError } = await supabase
+    .from(TABLE)
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (currentError) throw currentError;
+  if (!current) throw new Error("Operación no encontrada");
+  const parsed = parseOperacion(current);
+  if (parsed.estado !== "Asignada") {
+    throw new Error("Solo puedes revertir operaciones asignadas");
+  }
+
+  const { data, error } = await supabase
+    .from(TABLE)
+    .update({
+      estado: "Abierta",
+      es_posicion_actual: true,
+      tipo_movimiento: "apertura",
+      fecha_cierre: null,
+      precio_actual: null,
+      costo_cierre: 0,
+      comision: 0,
+      nota: parsed.nota ?? null,
+    })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data ? addCalculos(parseOperacion(data)) : null;
+}
+
+export async function revertirCierre(id: number) {
+  const { data: current, error: currentError } = await supabase
+    .from(TABLE)
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (currentError) throw currentError;
+  if (!current) throw new Error("Operación no encontrada");
+  const parsed = parseOperacion(current);
+  if (parsed.estado !== "Cerrada") {
+    throw new Error("Solo puedes revertir operaciones cerradas");
+  }
+
+  const { data, error } = await supabase
+    .from(TABLE)
+    .update({
+      estado: "Abierta",
+      es_posicion_actual: true,
+      tipo_movimiento: "apertura",
+      fecha_cierre: null,
+      precio_actual: null,
+      costo_cierre: 0,
+      comision: 0,
+      nota: parsed.nota ?? null,
+    })
+    .eq("id", id)
     .select()
     .single();
 
