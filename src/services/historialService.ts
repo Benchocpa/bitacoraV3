@@ -65,10 +65,27 @@ const parseOperacion = (row: any): Operacion => ({
 });
 
 const addCalculos = (op: Operacion): OperacionCalculada => {
-  const pl_asignacion = calcularPlAsignacion(op);
   const baseNeto = op.prima_recibida - (op.comision + op.costo_cierre);
-  // Para asignadas el costo ya viene en costo_cierre; evitamos duplicar el P/L de asignación.
-  const neto = op.estado === "Asignada" ? baseNeto : baseNeto + pl_asignacion;
+  let pl_asignacion = 0;
+  let extraCierre = 0;
+
+  if (op.estado === "Asignada") {
+    pl_asignacion = calcularPlAsignacion(op);
+    extraCierre = pl_asignacion;
+  } else if (
+    op.estado === "Cerrada" &&
+    op.estrategia.toUpperCase() === "CC" &&
+    op.precio_apertura !== null &&
+    op.precio_apertura !== undefined &&
+    op.precio_actual !== null &&
+    op.precio_actual !== undefined
+  ) {
+    // Al cerrar un CC sin asignación, sumamos la ganancia/pérdida de las acciones compradas al inicio.
+    const baseAcciones = op.contratos * 100;
+    extraCierre = (op.precio_actual - op.precio_apertura) * baseAcciones;
+  }
+
+  const neto = baseNeto + extraCierre;
   const capital = op.contratos * 100 * op.strike;
   const roi = capital > 0 ? neto / capital : 0;
   return { ...op, neto, roi, pl_asignacion };

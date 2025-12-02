@@ -42,6 +42,8 @@ export function ModalCierre({
     }
   }, [operacion]);
 
+  const esCC = (operacion?.estrategia ?? "").toUpperCase() === "CC";
+
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -124,8 +126,14 @@ export function ModalCierre({
                   step="0.01"
                   value={form.precio_actual}
                   onChange={handleChange}
-                  placeholder="Opcional"
+                  placeholder={esCC ? "Requerido para CC" : "Opcional"}
+                  required={esCC}
                 />
+                {esCC && (
+                  <p className="text-xs text-slate-600">
+                    Se usa para calcular la ganancia/pérdida de las acciones del CC al cerrar.
+                  </p>
+                )}
               </div>
             </div>
             <div className="space-y-1">
